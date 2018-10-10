@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -107,7 +108,12 @@ public class ChatListAdapter extends BaseAdapter {
         final InstantMessage message = getItem(position);
         final ViewHolder holder = (ViewHolder) convertView.getTag();
 
-        boolean isMe = message.getAuthor().equals(mDisplayName);
+
+        Log.d("FlashChat", "content of message get author = " + message.getAuthor());
+        Log.d("FlashChat", "content of mDisplayName = " + mDisplayName);
+        boolean isMe;
+        if (message.getAuthor() != null && message.getAuthor().equalsIgnoreCase(mDisplayName)) isMe = true;
+        else isMe = false;
         setChatRowAppearance(isMe, holder);
 
         String author = message.getAuthor();

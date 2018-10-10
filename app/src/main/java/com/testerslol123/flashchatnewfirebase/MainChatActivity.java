@@ -12,8 +12,12 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 
 public class MainChatActivity extends AppCompatActivity {
@@ -61,21 +65,40 @@ public class MainChatActivity extends AppCompatActivity {
 
     // TODO: Retrieve the display name from the Shared Preferences
     private void setupDisplayName () {
-        SharedPreferences prefs = getSharedPreferences(RegisterActivity.CHAT_PREFS, MODE_PRIVATE);
-        mDisplayName = prefs.getString(RegisterActivity.DISPLAY_NAME_KEY, null);
+//        SharedPreferences prefs = getSharedPreferences(RegisterActivity.CHAT_PREFS, MODE_PRIVATE);
+//        mDisplayName = prefs.getString(RegisterActivity.DISPLAY_NAME_KEY, null);
+//
+//        if (mDisplayName == null) mDisplayName = "Anonymous";
 
-        if (mDisplayName == null) mDisplayName = "Anonymous";
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        mDisplayName = user.getDisplayName();
     }
 
     private void sendMessage() {
         Log.d("FlashChat", "I type something");
         // TODO: Grab the text the user typed in and push the message to Firebase
         String input = mInputText.getText().toString();
-        if(!input.equals("")) {
-            InstantMessage chat = new InstantMessage(input, mDisplayName);
-            mDatabaseReference.child("messages").push().setValue(chat);
-            mInputText.setText("");
+
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-512");
+            byte[] digest = md.digest(input.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < digest.length; i++) {
+                sb.append(Integer.toString((digest[i] & 0xff) + 0x100, 16).substring(1));
+            }
+            Log.d("Kripto", "Hasil Hash SHA-512 = " + sb);
+
+            if(!input.equals("")) {
+                InstantMessage chat = new InstantMessage(input, mDisplayName);
+//                InstantMessage chat = new InstantMessage(sb.toString(), mDisplayName);
+                mDatabaseReference.child("messages").push().setValue(chat);
+                mInputText.setText("");
+            }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
         }
+
     }
 
     // TODO: Override the onStart() lifecycle method. Setup the adapter here.
