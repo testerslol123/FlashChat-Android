@@ -2,6 +2,7 @@ package com.testerslol123.flashchatnewfirebase;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -11,13 +12,25 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class MainChatActivity extends AppCompatActivity {
@@ -93,7 +106,40 @@ public class MainChatActivity extends AppCompatActivity {
                 InstantMessage chat = new InstantMessage(input, mDisplayName);
 //                InstantMessage chat = new InstantMessage(sb.toString(), mDisplayName);
                 mDatabaseReference.child("messages").push().setValue(chat);
-                mInputText.setText("");
+
+                // Get current User
+                FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                String email = user.getEmail();
+
+                Log.d("FireStore", "email user = " + email);
+
+                // Access a Cloud Firestore instance from your Activity
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+                Date currentTime = Calendar.getInstance().getTime();
+
+                // Save message to fire store
+                Map<String, Object> messageFirestore = new HashMap<>();
+                messageFirestore.put("message", input);
+                messageFirestore.put("email", email);
+                messageFirestore.put("chat_time", currentTime);
+
+                db.collection("Messages")
+                    .add(messageFirestore)
+                    .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                        @Override
+                        public void onSuccess(DocumentReference documentReference) {
+                            Log.d("FireStore", "Save Message with snapshot ID: " + documentReference.getId());
+
+                            mInputText.setText("");
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception e) {
+                            Log.w("FireStore", "Error adding save message", e);
+                        }
+                    });
             }
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -107,7 +153,6 @@ public class MainChatActivity extends AppCompatActivity {
         super.onStart();
         mAdapter = new ChatListAdapter(this, mDatabaseReference, mDisplayName);
         mChatListView.setAdapter(mAdapter);
-
     }
 
     @Override
